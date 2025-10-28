@@ -1,76 +1,81 @@
 workflows:
-  dexscreener_unsigned_altstore:
-    name: "Dexscreener Trader (Unsigned AltStore Build)"
+  altstore_build:
+    name: Dexscreener AltStore Build
     environment:
       vars:
         APP_NAME: "DexscreenerTrader"
-      xcode: latest
-
+        BUNDLE_ID: "com.tradezconsulting.dexscreener"
+        TEAM_ID: "YOUR_APPLE_TEAM_ID"
+        # ⬇️ Replace these two after your first build
+        PUBLIC_IPA_URL: "https://placeholder.com/ipa"  # <-- Replace with IPA artifact link from Codemagic
+        APP_ICON_URL: "https://placeholder.com/icon.png"  # <-- Replace with your app icon URL (can be from GitHub or Imgur)
     scripts:
-      - name: 🧹 Clean workspace
+      - name: Clean workspace
         script: |
-          rm -rf build
-          mkdir -p build
-
-      - name: 🧩 Prepare Safari Extension project
-        script: |
-          echo "Preparing Safari Extension build..."
-
-      - name: 🚀 Build unsigned Safari extension
-        script: |
-          echo "Building unsigned IPA..."
+          rm -rf build || true
           mkdir -p build/ipa
 
-          cat > build/exportOptions.plist <<EOF
+      - name: Prepare Safari Extension project
+        script: |
+          echo "Preparing Dexscreener Safari extension for unsigned export..."
+          xcodebuild -project Dexscreener.xcodeproj -scheme "${APP_NAME}" clean
+
+      - name: Build unsigned Safari extension
+        script: |
+          echo "Building unsigned IPA..."
+          xcodebuild -project Dexscreener.xcodeproj \
+            -scheme "${APP_NAME}" \
+            -configuration Release \
+            -archivePath build/${APP_NAME}.xcarchive archive
+
+      - name: Export unsigned IPA for AltStore
+        script: |
+          echo "Creating unsigned IPA..."
+          xcrun xcodebuild -exportArchive \
+            -archivePath build/${APP_NAME}.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>method</key><string>ad-hoc</string></dict></plist>') || true
+          cd build/ipa
+          zip -r ${APP_NAME}_unsigned.zip ${APP_NAME}.ipa
+          echo "✅ Unsigned IPA ready for AltStore / EonHub"
+
+      - name: Generate AltStore manifest
+        script: |
+          echo "Generating manifest.plist..."
+          cat > manifest.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>method</key>
-            <string>development</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>compileBitcode</key>
-            <false/>
-            <key>uploadBitcode</key>
-            <false/>
+            <key>items</key>
+            <array>
+              <dict>
+                <key>assets</key>
+                <array>
+                  <dict>
+                    <key>kind</key><string>software-package</string>
+                    <key>url</key><string>${PUBLIC_IPA_URL}</string>
+                  </dict>
+                  <dict>
+                    <key>kind</key><string>display-image</string>
+                    <key>url</key><string>${APP_ICON_URL}</string>
+                  </dict>
+                </array>
+                <key>metadata</key>
+                <dict>
+                  <key>bundle-identifier</key><string>${BUNDLE_ID}</string>
+                  <key>bundle-version</key><string>1.0</string>
+                  <key>kind</key><string>software</string>
+                  <key>title</key><string>${APP_NAME}</string>
+                </dict>
+              </dict>
+            </array>
           </dict>
           </plist>
           EOF
-
-          xcrun xcodebuild -exportArchive \
-            -allowProvisioningUpdates \
-            -archivePath build/${APP_NAME}.xcarchive \
-            -exportPath build/ipa \
-            -exportOptionsPlist build/exportOptions.plist || true
-
-          echo "✅ Unsigned IPA built for AltStore"
-
-      - name: 📦 Zip + rename IPA
-        script: |
-          echo "Zipping IPA..."
-          cd build/ipa
-          IPA_NAME="${APP_NAME}_$(date +%Y%m%d_%H%M%S)"
-          mv *.ipa "../${IPA_NAME}.ipa" || true
-          cd ..
-          zip "${IPA_NAME}.zip" "${IPA_NAME}.ipa"
-          echo "✅ ${IPA_NAME}.zip ready for AltStore import"
-
-      - name: ☁️ Generate download links
-        script: |
-          echo "Fetching artifact links..."
-          echo "When build finishes, open 'Artifacts' tab in Codemagic UI."
-          echo "There you can tap your .ipa or .zip file → 'Copy public link'"
-          echo "Then open that link on iPhone → 'Share' → 'Open in AltStore'."
+          echo "✅ manifest.plist ready for AltStore"
 
     artifacts:
-      - build/*.ipa
-      - build/*.zip
-
-    publishing:
-      email:
-        recipients:
-          - your-email@example.com
-        notify:
-          success: true
-          failure: true
+      - build/ipa/${APP_NAME}.ipa
+      - build/ipa/${APP_NAME}_unsigned.zip
+      - build/ipa/manifest.plist
