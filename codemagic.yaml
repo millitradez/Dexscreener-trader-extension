@@ -1,86 +1,53 @@
 workflows:
   dexscreener_safari_ios:
-    name: Dexscreener Safari iOS Build
+    name: Dexscreener Safari iOS
+    max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
       vars:
         APP_NAME: "DexscreenerTrader"
-        BUNDLE_ID: "com.tradezconsulting.dexscreener"
-        CM_EXPORT_TYPE: "development"
-        CM_ARTIFACT_DIR: "build_artifacts"
-        CM_API_TOKEN: Encrypted(...) # <- paste your Codemagic API token
-      groups:
-        - signing
+        BUNDLE_ID: "com.millitradez.dexscreenertrader"
+        CM_API_TOKEN: Encrypted(CM_API_TOKEN)
       xcode: latest
     triggering:
       events:
         - push
-        - manual
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
     scripts:
-      - name: 🧹 Clean workspace
+      - name: 🔧 Prepare Safari Extension project
         script: |
-          rm -rf $CM_BUILD_DIR/$CM_ARTIFACT_DIR
-          mkdir -p $CM_BUILD_DIR/$CM_ARTIFACT_DIR
-
-      - name: 🧩 Prepare Safari Extension wrapper
+          echo "Preparing Dexscreener Safari extension for unsigned export..."
+          if [ ! -d "DexscreenerTraderExtension" ]; then
+            echo "❌ DexscreenerTraderExtension folder not found. Please ensure project is in repo root."
+            exit 66
+          fi
+          echo "✅ Extension folder found."
+      - name: 🧹 Build Xcode project (clean)
         script: |
-          echo "🔧 Creating Safari iOS wrapper..."
-          mkdir -p DexscreenerTraderExtension
-          cat > DexscreenerTraderExtension/Info.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>CFBundleDisplayName</key><string>DexscreenerTrader</string>
-            <key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
-            <key>CFBundlePackageType</key><string>APPL</string>
-            <key>CFBundleVersion</key><string>1.0</string>
-            <key>NSExtension</key>
-            <dict>
-              <key>NSExtensionPointIdentifier</key><string>com.apple.Safari.web-extension</string>
-              <key>NSExtensionPrincipalClass</key><string>$(PRODUCT_MODULE_NAME).SafariWebExtensionHandler</string>
-            </dict>
-          </dict>
-          </plist>
-          EOF
-          echo "✅ Wrapper created"
-
-      - name: 🏗️ Build unsigned Safari iOS app
+          xcodebuild clean -project Dexscreener.xcodeproj -scheme "$APP_NAME"
+      - name: 📦 Archive Xcode build
         script: |
-          echo "🚀 Building unsigned IPA..."
-          xcodebuild -scheme DexscreenerTraderExtension \
-            -configuration Release \
-            -sdk iphoneos \
-            -archivePath $CM_BUILD_DIR/$APP_NAME.xcarchive \
-            clean archive
-
-      - name: 📦 Export unsigned IPA
+          xcodebuild archive -project Dexscreener.xcodeproj \
+          -scheme "$APP_NAME" \
+          -archivePath "$PWD/build/$APP_NAME.xcarchive" \
+          -destination "generic/platform=iOS"
+      - name: 🔑 Create unsigned IPA for AltStore
         script: |
-          mkdir -p $CM_BUILD_DIR/$CM_ARTIFACT_DIR
           xcodebuild -exportArchive \
-            -archivePath $CM_BUILD_DIR/$APP_NAME.xcarchive \
-            -exportPath $CM_BUILD_DIR/$CM_ARTIFACT_DIR \
-            -exportOptionsPlist <(echo "<?xml version='1.0' encoding='UTF-8'?><!DOCTYPE plist PUBLIC '-//Apple//DTD PLIST 1.0//EN' 'http://www.apple.com/DTDs/PropertyList-1.0.dtd'><plist version='1.0'><dict><key>method</key><string>development</string></dict></plist>")
-
-      - name: 🗜️ Zip and rename IPA
+          -archivePath "$PWD/build/$APP_NAME.xcarchive" \
+          -exportOptionsPlist ExportOptions.plist \
+          -exportPath "$PWD/build"
+      - name: 🗜️ Compress and rename IPA
         script: |
-          cd $CM_BUILD_DIR/$CM_ARTIFACT_DIR
-          BUILD_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          mv ${APP_NAME}.ipa "${APP_NAME}_${BUILD_TIMESTAMP}.ipa"
-          zip "${APP_NAME}_${BUILD_TIMESTAMP}.zip" "${APP_NAME}_${BUILD_TIMESTAMP}.ipa"
-
+          cd build
+          zip -r "${APP_NAME}_unsigned.ipa.zip" "${APP_NAME}.ipa"
     artifacts:
-      - $CM_BUILD_DIR/$CM_ARTIFACT_DIR/*.ipa
-      - $CM_BUILD_DIR/$CM_ARTIFACT_DIR/*.zip
-
+      - build/${APP_NAME}_unsigned.ipa.zip
     publishing:
       scripts:
-        - name: 🔗 Generate shareable artifact link
+        - name: 🌐 Generate shareable artifact link
           script: |
-            echo "Generating shareable download link..."
-            curl -s -X POST \
-              -H "x-auth-token: ${CM_API_TOKEN}" \
-              -F "artifact=@$CM_BUILD_DIR/$CM_ARTIFACT_DIR/${APP_NAME}_${BUILD_TIMESTAMP}.zip" \
-              https://api.codemagic.io/artifacts/upload \
-              > $CM_BUILD_DIR/$CM_ARTIFACT_DIR/share_link.json
-            echo "✅ Artifact uploaded. Link stored in share_link.json"
+            echo "Artifact ready for manual upload or AltStore sideload."
