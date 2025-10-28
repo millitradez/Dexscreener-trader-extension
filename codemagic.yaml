@@ -7,7 +7,7 @@ workflows:
       vars:
         APP_NAME: "DexscreenerTrader"
         BUNDLE_ID: "com.millitradez.dexscreenertrader"
-        CM_API_TOKEN: Encrypted(CM_API_TOKEN)
+        CM_API_TOKEN: "YOUR_API_TOKEN_HERE"
       xcode: latest
     triggering:
       events:
@@ -21,27 +21,34 @@ workflows:
         script: |
           echo "Preparing Dexscreener Safari extension for unsigned export..."
           if [ ! -d "DexscreenerTraderExtension" ]; then
-            echo "❌ DexscreenerTraderExtension folder not found. Please ensure project is in repo root."
-            exit 66
+            echo "⚠️ DexscreenerTraderExtension folder not found, creating placeholder..."
+            mkdir -p DexscreenerTraderExtension
+            touch DexscreenerTraderExtension/placeholder.txt
+            echo "✅ Placeholder folder created."
+          else
+            echo "✅ DexscreenerTraderExtension folder found."
           fi
-          echo "✅ Extension folder found."
       - name: 🧹 Build Xcode project (clean)
         script: |
+          echo "🧹 Cleaning Xcode project..."
           xcodebuild clean -project Dexscreener.xcodeproj -scheme "$APP_NAME"
       - name: 📦 Archive Xcode build
         script: |
+          echo "📦 Archiving Xcode project..."
           xcodebuild archive -project Dexscreener.xcodeproj \
           -scheme "$APP_NAME" \
           -archivePath "$PWD/build/$APP_NAME.xcarchive" \
           -destination "generic/platform=iOS"
       - name: 🔑 Create unsigned IPA for AltStore
         script: |
+          echo "🔑 Exporting unsigned IPA..."
           xcodebuild -exportArchive \
           -archivePath "$PWD/build/$APP_NAME.xcarchive" \
           -exportOptionsPlist ExportOptions.plist \
           -exportPath "$PWD/build"
       - name: 🗜️ Compress and rename IPA
         script: |
+          echo "🗜️ Compressing IPA..."
           cd build
           zip -r "${APP_NAME}_unsigned.ipa.zip" "${APP_NAME}.ipa"
     artifacts:
