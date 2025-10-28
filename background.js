@@ -1,1 +1,38 @@
-chrome.runtime.onInstalled.addListener(() => {\n  console.log("✅ Dexscreener Trader extension installed.");\n});\n\nasync function testJupiterAPI() {\n  const url = "https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=Es9vMFrzaCERmJFrLbhV4RxB3s7fFzYhw9o7PQ1q6i9L&amount=10000000";\n  try {\n    const res = await fetch(url);\n    if (!res.ok) throw new Error(res.statusText);\n    const data = await res.json();\n    console.log("✅ Jupiter API reachable:", data);\n  } catch (err) {\n    console.error("⚠️ Jupiter API connection failed:", err.message);\n  }\n}\n\ntestJupiterAPI();
+// Import API utilities
+importScripts('utils/api.js');
+
+chrome.runtime.onInstalled.addListener(async () => {
+  console.log("Dexscreener Trader extension installed.");
+
+  // Test Jupiter API connection
+  const isHealthy = await checkJupiterHealth();
+  if (isHealthy) {
+    console.log("Jupiter API is reachable and healthy");
+  } else {
+    console.warn("Jupiter API health check failed");
+  }
+});
+
+// Message listener for API requests from popup/content scripts
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'getQuote') {
+    const { inputMint, outputMint, amount, slippageBps } = request;
+
+    getJupiterQuote(inputMint, outputMint, amount, slippageBps)
+      .then(result => sendResponse(result))
+      .catch(error => sendResponse({
+        success: false,
+        error: error.message
+      }));
+
+    return true; // Keep channel open for async response
+  }
+
+  if (request.action === 'checkHealth') {
+    checkJupiterHealth()
+      .then(isHealthy => sendResponse({ success: true, healthy: isHealthy }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+
+    return true;
+  }
+});

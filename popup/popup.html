@@ -1,1 +1,104 @@
-<!DOCTYPE html>\n<html>\n  <head>\n    <title>Dexscreener Trader</title>\n    <link rel="stylesheet" href="popup.css" />\n  </head>\n  <body>\n    <h3>Trade via Jupiter</h3>\n    <button id="test">Test Jupiter API</button>\n    <div id="output"></div>\n    <script src="popup.js"></script>\n  </body>\n</html>
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Dexscreener Trader</title>
+    <link rel="stylesheet" href="popup.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.0/dist/tailwind.min.css" />
+  </head>
+  <body class="bg-slate-900 text-slate-100 p-4 w-96 font-sans">
+    <div class="space-y-4">
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h1 class="text-xl font-bold text-blue-400">Dexscreener Trader</h1>
+        <div id="healthIndicator" class="w-3 h-3 rounded-full bg-gray-500"></div>
+      </div>
+
+      <!-- Token Input Section -->
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1">Input Token (From)</label>
+          <input
+            type="text"
+            id="inputMint"
+            placeholder="SOL: So11111111111111111111111111111111111111112"
+            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1">Output Token (To)</label>
+          <input
+            type="text"
+            id="outputMint"
+            placeholder="USDC: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1">Amount (smallest unit)</label>
+          <input
+            type="number"
+            id="amount"
+            placeholder="10000000"
+            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1">Slippage (bps)</label>
+          <input
+            type="number"
+            id="slippage"
+            placeholder="50"
+            value="50"
+            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <p class="text-xs text-slate-400 mt-1">50 bps = 0.5%</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-2">
+        <button
+          id="getQuote"
+          class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Get Quote
+        </button>
+        <button
+          id="openDexscreener"
+          class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+        >
+          Open DEX
+        </button>
+      </div>
+
+      <!-- Loading Spinner -->
+      <div id="loading" class="hidden">
+        <div class="flex items-center justify-center space-x-2 py-4">
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+          <span class="text-slate-300">Loading...</span>
+        </div>
+      </div>
+
+      <!-- Output Section -->
+      <div id="output" class="hidden">
+        <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+          <h3 class="text-sm font-semibold text-slate-300 mb-2">Quote Result</h3>
+          <pre id="outputContent" class="text-xs text-slate-300 overflow-auto max-h-64 whitespace-pre-wrap"></pre>
+        </div>
+      </div>
+
+      <!-- Error Section -->
+      <div id="error" class="hidden">
+        <div class="bg-red-900/30 border border-red-700 rounded-lg p-3">
+          <p class="text-sm text-red-300" id="errorContent"></p>
+        </div>
+      </div>
+    </div>
+
+    <script src="../utils/api.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

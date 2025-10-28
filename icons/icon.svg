@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" fill="#3b82f6" rx="16"/>
+  <path d="M64 24L88 48H40L64 24Z" fill="#60a5fa"/>
+  <path d="M64 104L40 80H88L64 104Z" fill="#60a5fa"/>
+  <circle cx="64" cy="64" r="8" fill="#fff"/>
+  <text x="64" y="72" font-family="Arial, sans-serif" font-size="16" fill="#fff" text-anchor="middle" font-weight="bold">DEX</text>
+</svg>
