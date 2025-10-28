@@ -22,7 +22,7 @@ workflows:
             sed -i '' 's/"manifest_version": 3/"manifest_version": 2/' manifest.json
           fi
 
-      - name: Convert Chrome extension to Safari (force project)
+      - name: Convert Chrome extension to Safari
         script: |
           echo "🧩 Running safari-web-extension-converter..."
           mkdir -p /tmp/safari_build
@@ -30,21 +30,27 @@ workflows:
             --no-prompt \
             --force \
             --project-location /tmp/safari_build
-          ls -la /tmp/safari_build
-          echo "✅ Safari project created."
+          echo "✅ Safari project created at /tmp/safari_build"
+          ls /tmp/safari_build
 
-      - name: Fix missing .xcodeproj if needed
+      - name: Detect available schemes
         script: |
-          echo "🔍 Checking for .xcodeproj..."
+          echo "🔍 Searching for .xcodeproj and listing schemes..."
           cd /tmp/safari_build
-          if ! ls *.xcodeproj >/dev/null 2>&1; then
-            echo "⚠️ No Xcode project found. Creating placeholder..."
-            mkdir -p PlaceholderProject
-            cd PlaceholderProject
-            xcodebuild -create-xcframework > /dev/null 2>&1 || echo "✅ Placeholder ready."
-          else
-            echo "✅ Xcode project detected."
+          PROJECT=$(find . -name "*.xcodeproj" | head -n 1)
+          if [ -z "$PROJECT" ]; then
+            echo "❌ No Xcode project found."
+            exit 1
           fi
+          echo "📦 Found project: $PROJECT"
+          xcodebuild -list -project "$PROJECT"
+          SCHEME=$(xcodebuild -list -project "$PROJECT" | grep -E "Dexscreener.*(macOS|iOS)" | head -n 1 | sed 's/^ *//')
+          if [ -z "$SCHEME" ]; then
+            echo "⚠️ No valid scheme detected; fallback to first one..."
+            SCHEME=$(xcodebuild -list -project "$PROJECT" | grep -A 1 "Schemes:" | tail -n 1 | sed 's/^ *//')
+          fi
+          echo "✅ Using scheme: '$SCHEME'"
+          echo "SCHEME=$SCHEME" >> $CM_ENV
 
       - name: Build Safari extension app
         script: |
@@ -52,12 +58,15 @@ workflows:
           cd /tmp/safari_build
           PROJECT=$(find . -name "*.xcodeproj" | head -n 1)
           if [ -z "$PROJECT" ]; then
-            echo "❌ Still no Xcode project found."
+            echo "❌ No Xcode project found, cannot build."
             exit 1
           fi
-          SCHEME=$(xcodebuild -list -project "$PROJECT" -json | grep -A 1 '"schemes"' | tail -n 1 | tr -d '", ')
-          echo "✅ Using scheme: $SCHEME"
-          xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+          if [ -z "$SCHEME" ]; then
+            echo "❌ No scheme set."
+            exit 1
+          fi
+          echo "✅ Building with scheme: $SCHEME"
+          xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO | xcpretty
 
       - name: Package output
         script: |
