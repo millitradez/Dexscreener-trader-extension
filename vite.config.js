@@ -1,17 +1,30 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'manifest.json',
+          dest: '.'
+        },
+        {
+          src: 'icons',
+          dest: '.'
+        }
+      ]
+    })
+  ],
   build: {
     outDir: 'dist',
     rollupOptions: {
       input: {
-        popup: resolve(__dirname, 'react-popup/index.html'),
-        background: resolve(__dirname, 'background.js'),
-        content: resolve(__dirname, 'content/content.js'),
+        popup: resolve(__dirname, 'popup.html'),
+        background: resolve(__dirname, 'src/background.js'),
       },
       output: {
         entryFileNames: '[name].js',
@@ -19,12 +32,14 @@ export default defineConfig({
         assetFileNames: 'assets/[name].[ext]'
       }
     },
-    copyPublicDir: true,
+    copyPublicDir: false,
   },
-  publicDir: 'public',
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
     },
   },
+  define: {
+    'process.env': {}
+  }
 });

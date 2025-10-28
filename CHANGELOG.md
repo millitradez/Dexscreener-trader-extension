@@ -5,6 +5,124 @@ All notable changes to the Dexscreener Trader Extension will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-10-28
+
+### 🚀 MAJOR RELEASE - Built-in Wallet & Real Trading!
+
+This is a complete rewrite with React and includes REAL trading capabilities!
+
+#### Added
+
+##### Wallet Features
+- **Built-in Encrypted Wallet** - Create or import wallets directly in extension
+- **12-Word Mnemonic** - BIP39 standard recovery phrase generation
+- **Private Key Import** - Import existing wallets via Base58 private key
+- **Password Protection** - PBKDF2 (100k iterations) + NaCl encryption
+- **Auto-lock** - Wallet automatically locks when popup closes
+- **Balance Display** - Real-time SOL balance with auto-refresh
+- **Address Management** - Copy address, view on explorer
+
+##### Trading Features
+- **Real Swap Execution** - Execute trades on Solana mainnet
+- **Jupiter Swap API** - Get best prices across all DEXs
+- **Transaction Signing** - Sign and send transactions from built-in wallet
+- **Slippage Control** - Preset slippage (0.5%, 1%, 3%)
+- **Real-time Quotes** - Live price updates as you type
+- **Price Impact Display** - See how your trade affects the market
+- **Transaction Confirmation** - Wait for on-chain confirmation
+- **Solscan Links** - View completed transactions on Solscan
+
+##### UI Improvements
+- **React 18 Migration** - Complete rewrite with React
+- **Modern Design** - Gradient cards, animations, smooth transitions
+- **Loading States** - Spinners and status messages during operations
+- **Error Handling** - Beautiful error messages with actionable info
+- **Multi-view Navigation** - Setup → Unlock → Dashboard → Swap
+- **Responsive Layout** - Optimized for extension popup size
+
+##### Security
+- **Client-Side Encryption** - Keys never transmitted or stored plaintext
+- **Password Hash Verification** - SHA-256 hash for password validation
+- **No Backend** - Fully decentralized, no server dependencies
+- **Secure Storage** - chrome.storage.local with encryption
+- **Recovery Phrase Display** - One-time display with warnings
+- **Security Warnings** - Clear disclaimers about risks
+
+##### Developer Experience
+- **Vite Build System** - Fast builds with hot module replacement
+- **Zustand State Management** - Simple, efficient state handling
+- **Component Architecture** - Reusable React components
+- **TypeScript Support** - Type definitions for Chrome APIs
+- **PostCSS + Tailwind** - Utility-first CSS framework
+- **Modular Code** - Clean separation of concerns
+
+#### Changed
+
+##### Breaking Changes
+- **Build Required** - Now requires `npm run build` to create dist folder
+- **No Content Script** - Removed Dexscreener integration (for now)
+- **Different File Structure** - Moved to src/ directory structure
+
+##### Updated
+- **manifest.json** - Updated to v2.0.0, added alarms permission
+- **package.json** - Added React, Solana, encryption dependencies
+- **vite.config.js** - Optimized for Chrome extension builds
+- **README.md** - Completely rewritten for v2.0
+
+#### Technical Details
+
+##### New Dependencies
+- `react@18.2.0` - UI framework
+- `react-dom@18.2.0` - React DOM rendering
+- `@solana/web3.js@1.87.6` - Solana blockchain interaction
+- `@solana/spl-token@0.3.9` - SPL token support
+- `zustand@4.4.7` - State management
+- `tweetnacl@1.0.3` - Encryption library
+- `bip39@3.1.0` - Mnemonic generation
+- `bs58@5.0.0` - Base58 encoding
+
+##### New Files
+- `src/popup/App.jsx` - Main React app
+- `src/popup/main.jsx` - React entry point
+- `src/components/WalletSetup.jsx` - Create/import wallet
+- `src/components/WalletUnlock.jsx` - Unlock wallet
+- `src/components/WalletDashboard.jsx` - Balance and navigation
+- `src/components/SwapInterface.jsx` - Trading interface
+- `src/wallet/encryption.js` - Encryption utilities
+- `src/wallet/walletManager.js` - Wallet CRUD operations
+- `src/utils/jupiterSwap.js` - Jupiter API integration
+- `src/store/walletStore.js` - Zustand state store
+- `src/background.js` - Service worker
+- `src/index.css` - Global styles
+- `popup.html` - HTML entry point
+- `tailwind.config.js` - Tailwind configuration
+- `postcss.config.js` - PostCSS configuration
+
+##### Removed Files
+- `popup/popup.js` (vanilla) - Replaced with React
+- `popup/popup.html` (vanilla) - Replaced with React
+- `popup/popup.css` (vanilla) - Replaced with Tailwind
+- `content/content.js` - Temporarily removed
+- `utils/api.js` (vanilla) - Replaced with jupiterSwap.js
+
+#### Security Considerations
+
+⚠️ **Important Disclaimers**
+- Browser extensions can be vulnerable to attacks
+- Use only for small amounts
+- Always backup recovery phrase
+- Not audited by third-party security firms
+- Developer not responsible for losses
+
+#### Migration from v1.0
+
+If you're upgrading from v1.0:
+1. Export any saved preferences (they will be lost)
+2. Pull latest code
+3. Run `npm install` and `npm run build`
+4. Load `dist` folder in Chrome
+5. Create or import your wallet
+
 ## [1.0.0] - 2025-10-28
 
 ### Added
