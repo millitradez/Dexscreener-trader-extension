@@ -1,0 +1,21 @@
+workflows:
+  safari_extension_convert:
+    name: Safari Extension Conversion
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    environment:
+      vars:
+        LC_ALL: en_US.UTF-8
+        LANG: en_US.UTF-8
+    scripts:
+      - name: Install dependencies
+        script: |
+          brew install --cask safari-technology-preview || true
+      - name: Convert Chrome extension to Safari
+        script: |
+          xcrun safari-web-extension-converter . --no-open --force
+      - name: Zip output
+        script: |
+          zip -r SafariExtensionBuild.zip ./*
+    artifacts:
+      - SafariExtensionBuild.zip
