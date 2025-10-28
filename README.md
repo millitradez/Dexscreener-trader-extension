@@ -126,10 +126,28 @@ src/
 ## Build Commands
 
 ```bash
-npm run dev          # Development mode
-npm run build        # Production build
-npm run preview      # Preview build
+npm run dev           # Development mode
+npm run build         # Production build (Chrome/Edge)
+npm run build:safari  # Safari build (macOS only)
+npm run preview       # Preview build
 ```
+
+## Safari on iPhone/iPad
+
+Want to use on iOS? See **[SAFARI_IOS_GUIDE.md](./SAFARI_IOS_GUIDE.md)** for:
+- Complete conversion guide
+- iOS-specific changes needed
+- App Store submission process
+- Security considerations for mobile
+
+**Quick Start (macOS required):**
+```bash
+npm run build:safari
+./scripts/convert-to-safari.sh
+# Opens Xcode project
+```
+
+⚠️ **Important**: Storing private keys on mobile is risky. Consider WalletConnect integration instead!
 
 ## Tech Stack
 
