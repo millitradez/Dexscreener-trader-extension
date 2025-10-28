@@ -6,40 +6,61 @@ workflows:
     environment:
       xcode: 16.4
       vars:
-        EXTENSION_NAME: "Dexscreener Trader Extension"
+        EXTENSION_NAME: "DexscreenerTraderExtension"
     scripts:
       - name: 🧹 Clean workspace
         script: |
           rm -rf safari_project
           mkdir safari_project
 
-      - name: 🧩 Convert Chrome extension to Safari
+      - name: 🧩 Verify and convert Chrome extension
         script: |
-          echo "Converting Chrome extension to Safari..."
-          # Make sure we’re in the project root that has manifest.json
-          if [ ! -f "manifest.json" ]; then
-            echo "manifest.json not found in root. Checking nested folders..."
-            cd $(find . -name manifest.json -exec dirname {} \; | head -n 1)
+          echo "🔍 Searching for manifest.json..."
+          MANIFEST_PATH=$(find . -name manifest.json | head -n 1)
+          if [ -z "$MANIFEST_PATH" ]; then
+            echo "❌ No manifest.json found — cannot continue."
+            exit 1
           fi
 
+          echo "✅ Found manifest at: $MANIFEST_PATH"
+          EXT_DIR=$(dirname "$MANIFEST_PATH")
+          echo "Converting extension in: $EXT_DIR"
+
+          cd "$EXT_DIR"
           xcrun safari-web-extension-converter . \
-            --project-location ../safari_project \
+            --project-location "$PWD/../safari_project" \
             --app-name "${EXTENSION_NAME}" \
             --no-prompt \
             --force
 
+          echo "✅ Conversion complete. Checking output..."
+          ls -la ../safari_project || echo "⚠️ safari_project folder is empty!"
+
       - name: 🚀 Build Safari extension app
         script: |
-          echo "Building Safari extension..."
-          cd safari_project
-          SCHEME=$(xcodebuild -list | grep -A1 "Schemes:" | tail -n1 | xargs)
-          echo "Detected scheme: $SCHEME"
-          if [ -z "$SCHEME" ]; then
-            echo "❌ No scheme detected — listing contents for debug:"
-            ls -R
+          echo "📦 Building Safari extension..."
+          cd ../safari_project || { echo "❌ safari_project missing"; exit 1; }
+
+          echo "Listing contents:"
+          ls -R
+
+          PROJECT=$(find . -name "*.xcodeproj" | head -n 1)
+          if [ -z "$PROJECT" ]; then
+            echo "❌ No Xcode project found after conversion."
             exit 1
           fi
-          xcodebuild -scheme "$SCHEME" -configuration Release CODE_SIGNING_ALLOWED=NO
+
+          echo "✅ Found project: $PROJECT"
+
+          SCHEME=$(xcodebuild -list -project "$PROJECT" | grep -A1 "Schemes:" | tail -n1 | xargs)
+          echo "Detected scheme: $SCHEME"
+
+          if [ -z "$SCHEME" ]; then
+            echo "❌ No scheme found in project."
+            exit 1
+          fi
+
+          xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release CODE_SIGNING_ALLOWED=NO
 
     artifacts:
       - safari_project/build/Release/
