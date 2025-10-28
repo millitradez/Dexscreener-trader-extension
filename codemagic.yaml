@@ -1,69 +1,43 @@
 workflows:
-  safari_extension_build:
-    name: Dexscreener Safari Extension Build
+  safari_extension_convert:
+    name: Safari Extension Build
+    max_build_duration: 30
+    instance_type: mac_mini_m2
     environment:
-      xcode: latest
+      xcode: 16.4
       vars:
-        EXTENSION_NAME: "DexscreenerTraderExtension"
-        BUNDLE_IDENTIFIER: "com.tradezconsulting.dexscreenertrader"
-        APPLE_ID: "Tradezconsulting@icloud.com"
+        EXTENSION_NAME: "Dexscreener Trader Extension"
     scripts:
-      - name: Verify manifest.json and prepare
+      - name: 🧹 Clean workspace
         script: |
-          echo "Checking manifest.json..."
-          if [ ! -f "manifest.json" ]; then
-            echo "❌ manifest.json not found!"; exit 1;
-          fi
-          echo "✅ manifest.json found"
+          rm -rf safari_project
+          mkdir safari_project
 
-      - name: Convert Chrome extension to Safari
+      - name: 🧩 Convert Chrome extension to Safari
         script: |
-          mkdir -p safari_project
-          echo "Converting Chrome extension → Safari format..."
-          xcrun safari-web-extension-converter . \
+          echo "Converting Chrome extension to Safari..."
+          xcrun safari-web-extension-converter ./ \
             --project-location safari_project \
-            --app-name "$EXTENSION_NAME" \
-            --bundle-identifier "$BUNDLE_IDENTIFIER" \
-            --apple-id "$APPLE_ID" \
-            --force --no-prompt
-          echo "✅ Conversion complete"
+            --app-name "${EXTENSION_NAME}" \
+            --no-prompt \
+            --force
 
-      - name: Detect available schemes
+      - name: 🔍 Detect available schemes
         script: |
-          echo "🔍 Detecting schemes..."
-          cd safari_project || exit 1
+          echo "Detecting schemes..."
+          cd safari_project
           xcodebuild -list
 
-      - name: Build Safari extension app
+      - name: 🚀 Build Safari extension app
         script: |
-          echo "🚀 Building Safari app..."
-          cd safari_project || exit 1
-          xcodebuild -scheme "$EXTENSION_NAME (macOS)" \
-            -configuration Release \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
-          echo "✅ Safari app build complete"
-
-      - name: Auto-register extension with Safari
-        script: |
-          echo "🔧 Registering extension for Safari..."
-          cd safari_project/build/Release || exit 1
-          APP_PATH=$(find . -name "*.app" | head -n 1)
-          if [ -n "$APP_PATH" ]; then
-            echo "Found app: $APP_PATH"
-            open "$APP_PATH"
-            echo "✅ Extension app launched — check Safari > Settings > Extensions"
-          else
-            echo "❌ App not found in Release folder"
-            exit 1
-          fi
+          cd safari_project
+          SCHEME=$(xcodebuild -list | grep -A1 "Schemes:" | tail -n1 | xargs)
+          echo "Detected scheme: $SCHEME"
+          xcodebuild -scheme "$SCHEME" -configuration Release CODE_SIGNING_ALLOWED=NO
 
     artifacts:
-      - safari_project/build/Release/*.app
-      - safari_project/build/Release/*.safariextz
+      - safari_project/build/Release/
     publishing:
       email:
         recipients:
-          - Tradezconsulting@icloud.com
-        notify:
-          success: true
-          failure: true
+          - your@email.com
