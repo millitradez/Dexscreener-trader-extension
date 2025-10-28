@@ -1,21 +1,43 @@
 workflows:
-  safari_extension_convert:
-    name: Safari Extension Conversion
-    instance_type: mac_mini_m2
-    max_build_duration: 10
+  safari_extension_build:
+    name: Build Safari Extension
     environment:
+      xcode: latest
       vars:
-        LC_ALL: en_US.UTF-8
-        LANG: en_US.UTF-8
+        EXTENSION_NAME: "Dexscreener-trader-extension"
     scripts:
-      - name: Install dependencies
+      # Step 1 — Verify manifest exists
+      - name: Check manifest.json
         script: |
-          brew install --cask safari-technology-preview || true
+          if [ ! -f "manifest.json" ]; then
+            echo "❌ manifest.json not found. Please add it to project root."
+            exit 1
+          fi
+
+      # Step 2 — Create output folder
+      - name: Prepare build directory
+        script: |
+          mkdir -p build/safari
+
+      # Step 3 — Convert Chrome extension to Safari
       - name: Convert Chrome extension to Safari
         script: |
-          xcrun safari-web-extension-converter . --no-open --force
-      - name: Zip output
+          xcrun safari-web-extension-converter . \
+            --project-location build/safari \
+            --app-name "$EXTENSION_NAME" \
+            --no-open \
+            --force
+
+      # Step 4 — Build Safari app
+      - name: Build Safari extension app
         script: |
-          zip -r SafariExtensionBuild.zip ./*
+          cd build/safari/"$EXTENSION_NAME"
+          xcodebuild -scheme "$EXTENSION_NAME" -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+
     artifacts:
-      - SafariExtensionBuild.zip
+      - build/safari/**
+
+    publishing:
+      email:
+        recipients:
+          - your@email.com
