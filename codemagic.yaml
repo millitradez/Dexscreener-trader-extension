@@ -7,8 +7,9 @@ workflows:
       vars:
         APP_NAME: "DexscreenerTraderExtension"
       ios_signing:
-        distribution_type: ad-hoc
-        bundle_identifier: com.tradezconsulting.dexscreener
+        distribution_type: ad_hoc
+        bundle_identifier: "com.tradezconsulting.dexscreener"
+
     scripts:
       - name: 🧹 Clean workspace
         script: |
