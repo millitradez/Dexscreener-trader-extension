@@ -1,57 +1,42 @@
 workflows:
-  safari_extension_convert:
-    name: Dexscreener Trader iOS Extension
-    instance_type: mac_mini_m2
+  safari_extension_altstore:
+    name: Safari Extension for AltStore
     environment:
-      xcode: 16.4
       vars:
-        APP_NAME: "DexscreenerTraderExtension"
-
+        APP_NAME: "DexscreenerTrader"
     scripts:
       - name: 🧹 Clean workspace
         script: |
-          echo "Cleaning build folder..."
           rm -rf build || true
+          mkdir -p build
 
       - name: 🧩 Prepare Safari Extension project
         script: |
-          echo "Preparing extension files..."
-          mkdir -p safari_project
-          cp -R extension/* safari_project/
-          echo "✅ Safari project folder ready."
+          echo "Preparing Safari Extension project..."
 
       - name: 🚀 Build unsigned Safari extension
         script: |
-          echo "Building Safari extension for iOS (unsigned)..."
-          xcodebuild -project "./DexscreenerTraderExtension/DexscreenerTraderExtension.xcodeproj" \
-            -scheme "DexscreenerTraderExtension (iOS)" \
-            -configuration Release \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-          echo "✅ Build complete (unsigned)."
-
-      - name: 📦 Export unsigned IPA for AltStore / EonHub
-        script: |
-          echo "Creating unsigned IPA..."
+          echo "Building unsigned IPA..."
           mkdir -p build/ipa
           xcrun xcodebuild -exportArchive \
             -archivePath build/${APP_NAME}.xcarchive \
             -exportPath build/ipa \
-            -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?>
-            <plist version="1.0">
-              <dict>
-                <key>method</key><string>ad-hoc</string>
-              </dict>
-            </plist>') || true
-          echo "✅ Unsigned IPA exported."
+            -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>method</key><string>ad-hoc</string></dict></plist>')
 
-      - name: 🗜️ Package final IPA
+      - name: 📦 Package and rename IPA
         script: |
-          echo "Packaging unsigned IPA..."
-          cd build/ipa
-          mv *.ipa "${APP_NAME}_unsigned.ipa" || true
-          zip -r "${APP_NAME}_unsigned.zip" "${APP_NAME}_unsigned.ipa" || true
-          echo "✅ IPA packaged for AltStore / EonHub."
+          VERSION=$(date +"%Y%m%d_%H%M")
+          FINAL_NAME="${APP_NAME}_${VERSION}.ipa"
+          mv build/ipa/*.ipa "build/${FINAL_NAME}"
+          zip -j "build/${FINAL_NAME}.zip" "build/${FINAL_NAME}"
+          echo "✅ Packaged and renamed ${FINAL_NAME}"
 
     artifacts:
-      - build/ipa/*.ipa
-      - build/ipa/*.zip
+      - build/*.ipa
+      - build/*.zip
+
+    publishing:
+      scripts:
+        - name: 📤 Upload IPA for AltStore
+          script: |
+            echo "IPA uploaded! Copy the download link from Artifacts below 👇"
