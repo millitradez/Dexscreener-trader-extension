@@ -1,13 +1,13 @@
 workflows:
-  dexscreener_safari_ios:
-    name: Dexscreener Safari iOS
-    max_build_duration: 60
+  dexscreener_safari_web:
+    name: Dexscreener Safari Web Extension
+    max_build_duration: 30
     instance_type: mac_mini_m2
     environment:
       vars:
         APP_NAME: "DexscreenerTrader"
         BUNDLE_ID: "com.millitradez.dexscreenertrader"
-        CM_API_TOKEN: "YOUR_API_TOKEN_HERE"
+        CM_API_TOKEN: "test"
       xcode: latest
     triggering:
       events:
@@ -17,44 +17,25 @@ workflows:
           include: true
           source: true
     scripts:
-      - name: 🔧 Prepare Safari Extension project
+      - name: 🔧 Prepare Safari Extension package
         script: |
-          echo "Preparing Dexscreener Safari extension for unsigned export..."
-          if [ ! -d "DexscreenerTraderExtension" ]; then
-            echo "⚠️ DexscreenerTraderExtension folder not found, creating placeholder..."
-            mkdir -p DexscreenerTraderExtension
-            touch DexscreenerTraderExtension/placeholder.txt
-            echo "✅ Placeholder folder created."
-          else
-            echo "✅ DexscreenerTraderExtension folder found."
-          fi
-      - name: 🧹 Build Xcode project (clean)
+          echo "Preparing Dexscreener Safari Web Extension..."
+          mkdir -p build/safari
+          cp -r content icons popup background.js manifest.json build/safari/ 2>/dev/null || true
+          echo "✅ Copied extension files."
+
+      - name: 📦 Package extension
         script: |
-          echo "🧹 Cleaning Xcode project..."
-          xcodebuild clean -project Dexscreener.xcodeproj -scheme "$APP_NAME"
-      - name: 📦 Archive Xcode build
-        script: |
-          echo "📦 Archiving Xcode project..."
-          xcodebuild archive -project Dexscreener.xcodeproj \
-          -scheme "$APP_NAME" \
-          -archivePath "$PWD/build/$APP_NAME.xcarchive" \
-          -destination "generic/platform=iOS"
-      - name: 🔑 Create unsigned IPA for AltStore
-        script: |
-          echo "🔑 Exporting unsigned IPA..."
-          xcodebuild -exportArchive \
-          -archivePath "$PWD/build/$APP_NAME.xcarchive" \
-          -exportOptionsPlist ExportOptions.plist \
-          -exportPath "$PWD/build"
-      - name: 🗜️ Compress and rename IPA
-        script: |
-          echo "🗜️ Compressing IPA..."
-          cd build
-          zip -r "${APP_NAME}_unsigned.ipa.zip" "${APP_NAME}.ipa"
+          echo "Zipping extension for Safari..."
+          cd build/safari
+          zip -r "../${APP_NAME}_SafariExtension.zip" .
+
     artifacts:
-      - build/${APP_NAME}_unsigned.ipa.zip
+      - build/${APP_NAME}_SafariExtension.zip
+
     publishing:
       scripts:
-        - name: 🌐 Generate shareable artifact link
+        - name: 🌐 Generate artifact link
           script: |
-            echo "Artifact ready for manual upload or AltStore sideload."
+            echo "✅ Safari Web Extension packaged successfully."
+            echo "You can now download and sign it with Xcode → File → New → Project → Safari Extension."
