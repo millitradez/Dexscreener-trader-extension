@@ -1,35 +1,62 @@
 workflows:
   safari_extension_build:
-    name: Build Safari Extension (Non-Interactive)
+    name: Build Safari Extension (Dexscreener Trader)
+    max_build_duration: 60
     environment:
       xcode: latest
       vars:
-        EXTENSION_NAME: "Dexscreener-trader-extension"
+        APP_NAME: "Dexscreener-trader-extension"
     scripts:
       - name: Ensure manifest.json exists
         script: |
           if [ ! -f "manifest.json" ]; then
-            echo "❌ No manifest.json found. Please add it to root."
+            echo "❌ manifest.json not found!"
             exit 1
+          else
+            echo "✅ manifest.json found."
           fi
-
-      - name: Prepare build directory
-        script: |
-          mkdir -p build/safari
 
       - name: Convert Chrome extension to Safari (non-interactive)
         script: |
+          echo "🧩 Converting Chrome extension to Safari format..."
           xcrun safari-web-extension-converter . \
-            --project-location build/safari \
-            --app-name "$EXTENSION_NAME" \
-            --no-open \
             --no-prompt \
-            --force
+            --force \
+            --project-location ./safari_project
+          echo "✅ Conversion complete. Project saved in ./safari_project"
 
       - name: Build Safari extension app
         script: |
-          cd build/safari/"$EXTENSION_NAME"
-          xcodebuild -scheme "$EXTENSION_NAME" -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+          echo "🔧 Building Safari app..."
+          cd safari_project
+
+          echo "📦 Checking available schemes..."
+          SCHEME=$(xcodebuild -list -json | grep -A 1 '"schemes"' | tail -n 1 | tr -d '", ')
+          echo "✅ Detected scheme: $SCHEME"
+
+          if [ -z "$SCHEME" ]; then
+            echo "❌ No scheme found — build cannot continue."
+            exit 1
+          fi
+
+          echo "🚀 Running Xcode build for scheme: $SCHEME"
+          xcodebuild \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Package Safari extension
+        script: |
+          echo "📦 Packaging completed app..."
+          mkdir -p $CM_BUILD_DIR/output
+          find . -name "*.app" -exec cp -r {} $CM_BUILD_DIR/output/ \;
+          echo "✅ App packaged and copied to output directory"
 
     artifacts:
-      - build/safari/**
+      - output/**
+
+    publishing:
+      email:
+        recipients:
+          - Tradezconsulting@icloud.com
