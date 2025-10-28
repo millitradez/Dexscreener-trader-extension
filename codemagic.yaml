@@ -1,72 +1,46 @@
 workflows:
-  ios_unsigned_build:
-    name: Build Unsigned IPA for AltStore
-    max_build_duration: 60
+  web_extension_unsigned_build:
+    name: DexscreenerTrader Unsigned Web Build
+    max_build_duration: 30
     environment:
       groups:
-        - codemagic_credentials  # Contains CM_API_TOKEN
+        - codemagic_credentials
       vars:
         APP_NAME: "DexscreenerTrader"
-        BUNDLE_ID: "com.millitradez.dexscreenertrader"
-        XCODE_WORKSPACE: "DexscreenerTrader.xcworkspace"
-        XCODE_SCHEME: "DexscreenerTrader"
         BUILD_DIR: "build"
-      xcode: latest
-      cocoapods: default
     scripts:
-      - name: 🚀 Prepare Safari Extension project
+      - name: 🧹 Clean workspace
         script: |
-          echo "Preparing Dexscreener Safari extension for unsigned export..."
-          if [ ! -d "./DexscreenerTraderExtension" ]; then
-            echo "❌ DexscreenerTraderExtension folder not found. Please ensure project is in repo root."
-            exit 66
-          fi
+          echo "Cleaning workspace..."
+          rm -rf "$BUILD_DIR"
+          mkdir -p "$BUILD_DIR"
 
-      - name: 🧱 Build Xcode project (clean)
+      - name: 📁 Prepare web extension files
         script: |
-          echo "Cleaning project..."
-          xcodebuild -project "./DexscreenerTraderExtension/DexscreenerTraderExtension.xcodeproj" \
-          -scheme "${XCODE_SCHEME}" clean
+          echo "Preparing web extension files for DexscreenerTrader..."
+          mkdir -p "$BUILD_DIR"
+          cp -r content Content icons popup *.js *.html *.json *.md "$BUILD_DIR" 2>/dev/null || true
+          echo "✅ Files copied to build directory."
 
-      - name: 📦 Archive Xcode build
+      - name: 🧩 Package unsigned web build
         script: |
-          echo "Archiving build..."
-          mkdir -p "${BUILD_DIR}"
-          xcodebuild -project "./DexscreenerTraderExtension/DexscreenerTraderExtension.xcodeproj" \
-          -scheme "${XCODE_SCHEME}" \
-          -archivePath "${BUILD_DIR}/${APP_NAME}.xcarchive" \
-          archive
+          cd "$BUILD_DIR"
+          BUILD_NAME="${APP_NAME}_$(date +%Y%m%d_%H%M%S)"
+          zip -r "${BUILD_NAME}.zip" .
+          mv "${BUILD_NAME}.zip" ../
+          echo "✅ Created unsigned build: ${BUILD_NAME}.zip"
 
-      - name: 🧩 Create unsigned IPA for AltStore
+      - name: 📤 Generate shareable artifact link
         script: |
-          echo "Creating unsigned IPA..."
-          mkdir -p "${BUILD_DIR}/ipa"
-          xcrun xcodebuild -exportArchive \
-            -archivePath "${BUILD_DIR}/${APP_NAME}.xcarchive" \
-            -exportPath "${BUILD_DIR}/ipa" \
-            -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>method</key><string>ad-hoc</string></dict></plist>')
-          echo "✅ Unsigned IPA ready for AltStore"
-
-      - name: 📤 Compress and rename IPA
-        script: |
-          IPA_PATH="${BUILD_DIR}/ipa/${APP_NAME}.ipa"
-          if [ -f "$IPA_PATH" ]; then
-            ZIP_PATH="${BUILD_DIR}/${APP_NAME}_$(date +%Y%m%d_%H%M%S).zip"
-            mv "$IPA_PATH" "$ZIP_PATH"
-            echo "📦 IPA renamed to $ZIP_PATH"
-          else
-            echo "❌ IPA not found!"
-            exit 1
-          fi
+          echo "Generating shareable artifact link..."
+          ls -lh ../*.zip
+          echo "You can find your build in the 'Artifacts' tab after completion."
 
     artifacts:
-      - build/ipa/*.ipa
-      - build/*.zip
+      - "*.zip"
 
     publishing:
       scripts:
-        - name: 🔗 Generate shareable artifact link
+        - name: 🔗 Auto-publish build link
           script: |
-            echo "Generating public link for AltStore import..."
-            echo "You can upload the .ipa or .zip to any file host (e.g. Dropbox, Google Drive, or GitHub Releases)"
-            echo "Then open AltStore > My Apps > + (add) > choose the downloaded IPA file."
+            echo "Build complete — share your ZIP artifact from Codemagic UI or via generated link."
