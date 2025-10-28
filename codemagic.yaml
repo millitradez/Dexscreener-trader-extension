@@ -1,34 +1,31 @@
 workflows:
   safari_extension_build:
-    name: Build Safari Extension
+    name: Build Safari Extension (Non-Interactive)
     environment:
       xcode: latest
       vars:
         EXTENSION_NAME: "Dexscreener-trader-extension"
     scripts:
-      # Step 1 — Verify manifest exists
-      - name: Check manifest.json
+      - name: Ensure manifest.json exists
         script: |
           if [ ! -f "manifest.json" ]; then
-            echo "❌ manifest.json not found. Please add it to project root."
+            echo "❌ No manifest.json found. Please add it to root."
             exit 1
           fi
 
-      # Step 2 — Create output folder
       - name: Prepare build directory
         script: |
           mkdir -p build/safari
 
-      # Step 3 — Convert Chrome extension to Safari
-      - name: Convert Chrome extension to Safari
+      - name: Convert Chrome extension to Safari (non-interactive)
         script: |
           xcrun safari-web-extension-converter . \
             --project-location build/safari \
             --app-name "$EXTENSION_NAME" \
             --no-open \
+            --no-prompt \
             --force
 
-      # Step 4 — Build Safari app
       - name: Build Safari extension app
         script: |
           cd build/safari/"$EXTENSION_NAME"
@@ -36,8 +33,3 @@ workflows:
 
     artifacts:
       - build/safari/**
-
-    publishing:
-      email:
-        recipients:
-          - your@email.com
