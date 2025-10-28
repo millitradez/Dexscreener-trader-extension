@@ -40,7 +40,13 @@ A powerful Chrome/Edge browser extension for trading Solana tokens with a secure
 
 ## Installation
 
-### Install from Source
+### 🪟 Windows / 🐧 Linux / 🍎 macOS
+
+**Works on Chrome, Edge, Brave, Opera (any Chromium browser)**
+
+See **[WINDOWS_SETUP.md](./WINDOWS_SETUP.md)** for detailed Windows guide.
+
+**Quick Install:**
 
 1. **Download the repository**
    ```bash
@@ -54,12 +60,20 @@ A powerful Chrome/Edge browser extension for trading Solana tokens with a secure
    npm run build
    ```
 
-3. **Load in Chrome**
-   - Open `chrome://extensions/`
+3. **Load in Chrome/Edge**
+   - Open `chrome://extensions/` (or `edge://extensions/`)
    - Enable "Developer mode"
    - Click "Load unpacked"
-   - Select the `dist` folder
+   - Select the `dist` folder (NOT the root folder!)
    - Done! Click the extension icon
+
+### 📱 Safari on iPhone/iPad
+
+**Requires macOS + Xcode** (cannot be done on Windows/Linux)
+
+See **[SAFARI_IOS_GUIDE.md](./SAFARI_IOS_GUIDE.md)** for complete guide.
+
+⚠️ **Don't have a Mac?** You cannot create Safari iOS extensions. Use Chrome/Edge on your computer instead.
 
 ## Usage Guide
 
