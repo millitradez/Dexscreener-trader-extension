@@ -1,40 +1,35 @@
 workflows:
-  safari_extension_ios_free:
-    name: Safari Extension (iOS Mobile)
-    max_build_duration: 60
+  safari_extension_convert:
+    name: Dexscreener Trader iOS Extension
     instance_type: mac_mini_m2
-
     environment:
       xcode: 16.4
       vars:
         APP_NAME: "DexscreenerTraderExtension"
-        BUNDLE_ID: "com.tradezconsulting.dexscreenertrader"
-        APPLE_ID_EMAIL: "Tradezconsulting@icloud.com"
-
+      ios_signing:
+        distribution_type: ad-hoc
+        bundle_identifier: com.tradezconsulting.dexscreener
     scripts:
       - name: 🧹 Clean workspace
         script: |
           rm -rf build || true
-          mkdir -p build
 
       - name: 🧩 Verify and convert Chrome extension
         script: |
-          echo "Verifying Chrome extension files..."
-          ls -R
-          echo "✅ Chrome extension verified"
+          echo "Verifying Chrome extension..."
+          mkdir -p safari_project
+          cp -R extension/* safari_project/
+          echo "✅ Conversion complete."
 
       - name: 🚀 Build Safari extension (iOS mobile)
         script: |
-          echo "Building Safari iOS extension..."
-          cd DexscreenerTraderExtension
-          xcodebuild \
-            -project DexscreenerTraderExtension.xcodeproj \
+          echo "Building Safari extension..."
+          xcodebuild -project "./DexscreenerTraderExtension/DexscreenerTraderExtension.xcodeproj" \
             -scheme "DexscreenerTraderExtension (iOS)" \
             -configuration Release \
-            CODE_SIGNING_ALLOWED=NO \
-            build
+            CODE_SIGNING_ALLOWED=NO
 
-      - name: 📦 Package iOS app for AltStore / EonHub
+      - name: 📦 Export unsigned IPA for AltStore / EonHub
         script: |
           echo "Creating unsigned IPA..."
           mkdir -p build/ipa
@@ -45,12 +40,4 @@ workflows:
           echo "✅ Unsigned IPA ready for AltStore / EonHub"
 
     artifacts:
-      - build/ipa/**
-
-    publishing:
-      email:
-        recipients:
-          - Tradezconsulting@icloud.com
-        notify:
-          success: true
-          failure: true
+      - build/ipa/*.ipa
