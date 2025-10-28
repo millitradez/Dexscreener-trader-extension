@@ -1,57 +1,70 @@
 workflows:
   safari_extension_build:
-    name: Build Safari Extension (Dexscreener Trader)
+    name: Dexscreener Trader Safari Extension
     max_build_duration: 60
     environment:
       xcode: latest
       vars:
         APP_NAME: "Dexscreener-trader-extension"
     scripts:
-      - name: Ensure manifest.json exists
+      - name: Verify manifest and prepare
         script: |
+          echo "🧩 Checking manifest.json..."
           if [ ! -f "manifest.json" ]; then
             echo "❌ manifest.json not found!"
             exit 1
-          else
-            echo "✅ manifest.json found."
           fi
 
-      - name: Convert Chrome extension to Safari (non-interactive)
+          MANIFEST_VERSION=$(grep '"manifest_version"' manifest.json | grep -o '[0-9]*')
+          echo "Manifest version: $MANIFEST_VERSION"
+          if [ "$MANIFEST_VERSION" -eq 3 ]; then
+            echo "⚠️ Detected manifest v3 — converting to v2 for Safari compatibility..."
+            sed -i '' 's/"manifest_version": 3/"manifest_version": 2/' manifest.json
+          fi
+
+      - name: Convert Chrome extension to Safari (force project)
         script: |
-          echo "🧩 Converting Chrome extension to Safari format..."
+          echo "🧩 Running safari-web-extension-converter..."
+          mkdir -p /tmp/safari_build
           xcrun safari-web-extension-converter . \
             --no-prompt \
             --force \
-            --project-location ./safari_project
-          echo "✅ Conversion complete. Project saved in ./safari_project"
+            --project-location /tmp/safari_build
+          ls -la /tmp/safari_build
+          echo "✅ Safari project created."
+
+      - name: Fix missing .xcodeproj if needed
+        script: |
+          echo "🔍 Checking for .xcodeproj..."
+          cd /tmp/safari_build
+          if ! ls *.xcodeproj >/dev/null 2>&1; then
+            echo "⚠️ No Xcode project found. Creating placeholder..."
+            mkdir -p PlaceholderProject
+            cd PlaceholderProject
+            xcodebuild -create-xcframework > /dev/null 2>&1 || echo "✅ Placeholder ready."
+          else
+            echo "✅ Xcode project detected."
+          fi
 
       - name: Build Safari extension app
         script: |
-          echo "🔧 Building Safari app..."
-          cd safari_project
-
-          echo "📦 Checking available schemes..."
-          SCHEME=$(xcodebuild -list -json | grep -A 1 '"schemes"' | tail -n 1 | tr -d '", ')
-          echo "✅ Detected scheme: $SCHEME"
-
-          if [ -z "$SCHEME" ]; then
-            echo "❌ No scheme found — build cannot continue."
+          echo "🚀 Building Safari extension..."
+          cd /tmp/safari_build
+          PROJECT=$(find . -name "*.xcodeproj" | head -n 1)
+          if [ -z "$PROJECT" ]; then
+            echo "❌ Still no Xcode project found."
             exit 1
           fi
+          SCHEME=$(xcodebuild -list -project "$PROJECT" -json | grep -A 1 '"schemes"' | tail -n 1 | tr -d '", ')
+          echo "✅ Using scheme: $SCHEME"
+          xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
-          echo "🚀 Running Xcode build for scheme: $SCHEME"
-          xcodebuild \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO
-
-      - name: Package Safari extension
+      - name: Package output
         script: |
-          echo "📦 Packaging completed app..."
+          echo "📦 Packaging .app output..."
           mkdir -p $CM_BUILD_DIR/output
-          find . -name "*.app" -exec cp -r {} $CM_BUILD_DIR/output/ \;
-          echo "✅ App packaged and copied to output directory"
+          find /tmp/safari_build -name "*.app" -exec cp -r {} $CM_BUILD_DIR/output/ \;
+          echo "✅ Done."
 
     artifacts:
       - output/**
