@@ -3,12 +3,11 @@ workflows:
     name: Dexscreener AltStore Build
     environment:
       vars:
-        APP_NAME: "DexscreenerTrader"
+        APP_NAME: "DexscreenerTraderExtension"
         BUNDLE_ID: "com.tradezconsulting.dexscreener"
         TEAM_ID: "YOUR_APPLE_TEAM_ID"
-        # ⬇️ Replace these two after your first build
-        PUBLIC_IPA_URL: "https://placeholder.com/ipa"  # <-- Replace with IPA artifact link from Codemagic
-        APP_ICON_URL: "https://placeholder.com/icon.png"  # <-- Replace with your app icon URL (can be from GitHub or Imgur)
+        PUBLIC_IPA_URL: "https://placeholder.com/ipa"  # Replace after first build
+        APP_ICON_URL: "https://placeholder.com/icon.png"  # Replace later
     scripts:
       - name: Clean workspace
         script: |
@@ -18,12 +17,12 @@ workflows:
       - name: Prepare Safari Extension project
         script: |
           echo "Preparing Dexscreener Safari extension for unsigned export..."
-          xcodebuild -project Dexscreener.xcodeproj -scheme "${APP_NAME}" clean
+          xcodebuild -project "./DexscreenerTraderExtension/DexscreenerTraderExtension.xcodeproj" -scheme "${APP_NAME}" clean
 
       - name: Build unsigned Safari extension
         script: |
           echo "Building unsigned IPA..."
-          xcodebuild -project Dexscreener.xcodeproj \
+          xcodebuild -project "./DexscreenerTraderExtension/DexscreenerTraderExtension.xcodeproj" \
             -scheme "${APP_NAME}" \
             -configuration Release \
             -archivePath build/${APP_NAME}.xcarchive archive
