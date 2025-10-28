@@ -1,14 +1,10 @@
 workflows:
-  dexscreener_trader_extension:
-    name: "Dexscreener Trader Extension"
+  dexscreener_unsigned_altstore:
+    name: "Dexscreener Trader (Unsigned AltStore Build)"
     environment:
       vars:
         APP_NAME: "DexscreenerTrader"
-        BUNDLE_ID: "com.tradezconsulting.dexscreener"
       xcode: latest
-      ios_signing:
-        distribution_type: ad_hoc
-        bundle_identifier: com.tradezconsulting.dexscreener
 
     scripts:
       - name: 🧹 Clean workspace
@@ -25,33 +21,41 @@ workflows:
           echo "Building unsigned IPA..."
           mkdir -p build/ipa
 
-          # Write export options to a file
+          # Create dummy export plist for unsigned export
           cat > build/exportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>ad-hoc</string>
+            <string>development</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>compileBitcode</key>
+            <false/>
+            <key>uploadBitcode</key>
+            <false/>
           </dict>
           </plist>
           EOF
 
           xcrun xcodebuild -exportArchive \
+            -allowProvisioningUpdates \
             -archivePath build/${APP_NAME}.xcarchive \
             -exportPath build/ipa \
             -exportOptionsPlist build/exportOptions.plist || true
 
-          echo "✅ Unsigned IPA ready for AltStore / EonHub"
+          echo "✅ Unsigned IPA built for AltStore"
 
-      - name: 📦 Auto-zip + rename IPA for AltStore
+      - name: 📦 Zip + rename IPA
         script: |
-          echo "Zipping and renaming IPA..."
+          echo "Zipping IPA..."
           cd build/ipa
-          IPA_NAME="${APP_NAME}_$(date +%Y%m%d_%H%M%S).ipa"
-          zip -r "${IPA_NAME}.zip" *.ipa >/dev/null 2>&1 || true
-          mv *.ipa "../${IPA_NAME}" || true
-          echo "✅ ${IPA_NAME} created and zipped for AltStore"
+          IPA_NAME="${APP_NAME}_$(date +%Y%m%d_%H%M%S)"
+          mv *.ipa "../${IPA_NAME}.ipa" || true
+          cd ..
+          zip "${IPA_NAME}.zip" "${IPA_NAME}.ipa"
+          echo "✅ ${IPA_NAME}.zip ready to install via AltStore"
 
     artifacts:
       - build/*.ipa
