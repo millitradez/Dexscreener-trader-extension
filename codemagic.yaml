@@ -1,42 +1,66 @@
 workflows:
-  safari_extension_altstore:
-    name: Safari Extension for AltStore
+  dexscreener_trader_extension:
+    name: "Dexscreener Trader Extension"
     environment:
       vars:
         APP_NAME: "DexscreenerTrader"
+        BUNDLE_ID: "com.tradezconsulting.dexscreener"
+      xcode: latest
+      ios_signing:
+        distribution_type: ad_hoc
+        bundle_identifier: com.tradezconsulting.dexscreener
+
     scripts:
       - name: 🧹 Clean workspace
         script: |
-          rm -rf build || true
+          rm -rf build
           mkdir -p build
 
       - name: 🧩 Prepare Safari Extension project
         script: |
-          echo "Preparing Safari Extension project..."
+          echo "Preparing Safari Extension build..."
 
       - name: 🚀 Build unsigned Safari extension
         script: |
           echo "Building unsigned IPA..."
           mkdir -p build/ipa
+
+          # Write export options to a file
+          cat > build/exportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>ad-hoc</string>
+          </dict>
+          </plist>
+          EOF
+
           xcrun xcodebuild -exportArchive \
             -archivePath build/${APP_NAME}.xcarchive \
             -exportPath build/ipa \
-            -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>method</key><string>ad-hoc</string></dict></plist>')
+            -exportOptionsPlist build/exportOptions.plist || true
 
-      - name: 📦 Package and rename IPA
+          echo "✅ Unsigned IPA ready for AltStore / EonHub"
+
+      - name: 📦 Auto-zip + rename IPA for AltStore
         script: |
-          VERSION=$(date +"%Y%m%d_%H%M")
-          FINAL_NAME="${APP_NAME}_${VERSION}.ipa"
-          mv build/ipa/*.ipa "build/${FINAL_NAME}"
-          zip -j "build/${FINAL_NAME}.zip" "build/${FINAL_NAME}"
-          echo "✅ Packaged and renamed ${FINAL_NAME}"
+          echo "Zipping and renaming IPA..."
+          cd build/ipa
+          IPA_NAME="${APP_NAME}_$(date +%Y%m%d_%H%M%S).ipa"
+          zip -r "${IPA_NAME}.zip" *.ipa >/dev/null 2>&1 || true
+          mv *.ipa "../${IPA_NAME}" || true
+          echo "✅ ${IPA_NAME} created and zipped for AltStore"
 
     artifacts:
       - build/*.ipa
       - build/*.zip
 
     publishing:
-      scripts:
-        - name: 📤 Upload IPA for AltStore
-          script: |
-            echo "IPA uploaded! Copy the download link from Artifacts below 👇"
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: true
