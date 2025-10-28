@@ -1,6 +1,6 @@
 workflows:
   safari_extension_convert:
-    name: Safari Extension Auto-Build
+    name: Safari Mobile Extension Auto-Build
     max_build_duration: 30
     instance_type: mac_mini_m2
     environment:
@@ -36,12 +36,12 @@ workflows:
           echo "✅ Conversion complete. Checking output..."
           ls -la ../safari_project || echo "⚠️ safari_project folder is empty!"
 
-      - name: 🚀 Build Safari extension app
+      - name: 🚀 Build Safari extension (iOS mobile)
         script: |
-          echo "📦 Building Safari extension..."
+          echo "📦 Building Safari iOS extension..."
           cd ../safari_project || { echo "❌ safari_project missing"; exit 1; }
 
-          echo "Listing contents:"
+          echo "Listing contents for debug:"
           ls -R
 
           PROJECT=$(find . -name "*.xcodeproj" | head -n 1)
@@ -52,18 +52,27 @@ workflows:
 
           echo "✅ Found project: $PROJECT"
 
-          SCHEME=$(xcodebuild -list -project "$PROJECT" | grep -A1 "Schemes:" | tail -n1 | xargs)
+          SCHEME=$(xcodebuild -list -project "$PROJECT" | grep "iOS (App)" | head -n 1 | xargs)
+          if [ -z "$SCHEME" ]; then
+            echo "⚠️ iOS (App) scheme not found, falling back to first detected scheme..."
+            SCHEME=$(xcodebuild -list -project "$PROJECT" | grep -A1 "Schemes:" | tail -n1 | xargs)
+          fi
+
           echo "Detected scheme: $SCHEME"
 
           if [ -z "$SCHEME" ]; then
-            echo "❌ No scheme found in project."
+            echo "❌ No valid iOS scheme found — cannot continue."
             exit 1
           fi
 
-          xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release CODE_SIGNING_ALLOWED=NO
+          echo "🚀 Starting iOS build..."
+          xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO
+
+          echo "✅ iOS Safari extension built successfully!"
+          ls -R build || echo "⚠️ Build folder missing!"
 
     artifacts:
-      - safari_project/build/Release/
+      - safari_project/build/Release-iphoneos/
     publishing:
       email:
         recipients:
